@@ -23,6 +23,14 @@ A lightweight, no-setup job tracker focused on speed and simplicity.
 
 No backend is required for the current version. Everything runs client-side.
 
+## Where your data is stored
+
+- All saved applications are stored in your browser's **localStorage** using key: `jat.applications.v1`.
+- Unsaved form draft data is stored in localStorage using key: `jat.draft.v1`.
+- Data is stored **locally on that browser + device only** (not on a remote server by default).
+- If you clear browser site data, use private/incognito mode, or switch devices/browsers, your local data will not automatically appear there.
+- Use the app's **Export JSON** and **Import JSON** features to back up or move your data.
+
 ## Latest technology direction
 
 This project is currently a fast static web app (`index.html`, `app.js`, `styles.css`), which keeps it very simple to run and deploy.  
