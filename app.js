@@ -2,6 +2,12 @@ const STORAGE_KEY = 'jat.applications.v1';
 const DRAFT_KEY = 'jat.draft.v1';
 const MAX_NOTES_LENGTH = 400;
 const MAX_SUMMARY_LENGTH = 120;
+const MIN_TITLE_LENGTH = 3;
+const MAX_TITLE_LENGTH = 80;
+const SKILL_POOL = [
+  'JavaScript', 'TypeScript', 'React', 'Node', 'Python', 'Java', 'SQL', 'AWS', 'Azure', 'GCP',
+  'Docker', 'Kubernetes', 'CI/CD', 'Git', 'API', 'Agile', 'Scrum', 'Excel', 'Communication', 'Leadership'
+];
 
 const form = document.getElementById('applicationForm');
 const list = document.getElementById('applicationsList');
@@ -44,23 +50,23 @@ function resetForm() {
   editingId = null;
   form.reset();
   document.getElementById('status').value = 'Saved';
-  document.getElementById('dateApplied').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('dateApplied').value = '';
 }
 
 function autoExtract(description) {
   const pick = (regex) => description.match(regex)?.[1]?.trim() || '';
-  const title = pick(/(?:job title|position|role)\s*[:\-]\s*([^\n]+)/i) || pick(/^([^\n]{3,60})$/m);
+  const salaryRangePattern = /\$[\d,.]+(?:\s*[-–]\s*\$?[\d,.]+)?(?:\s*\/?\s*(?:year|hr|hour))?/i;
+  const firstLine = description.split('\n')[0]?.trim() || '';
+  const title = pick(/(?:job title|position|role)\s*[:\-]\s*([^\n]+)/i) || (firstLine.length >= MIN_TITLE_LENGTH && firstLine.length <= MAX_TITLE_LENGTH ? firstLine : '');
   const company = pick(/(?:company|organization|employer)\s*[:\-]\s*([^\n]+)/i);
   const location = pick(/(?:location|based in)\s*[:\-]\s*([^\n]+)/i);
-  const salary = pick(/(?:salary|compensation|pay)\s*[:\-]\s*([^\n]+)/i) || description.match(/\$[\d,.]+(?:\s*[-–]\s*\$?[\d,.]+)?(?:\s*\/?\s*(?:year|hr|hour))?/i)?.[0] || '';
+  const salaryByLabel = pick(/(?:salary|compensation|pay)\s*[:\-]\s*([^\n]+)/i);
+  const salaryByRange = description.match(salaryRangePattern)?.[0] || '';
+  const salary = salaryByLabel || salaryByRange;
   const applyUrl = description.match(/https?:\/\/[^\s)]+/i)?.[0] || '';
   const deadlinePhrase = pick(/(?:deadline|apply by)\s*[:\-]\s*([^\n]+)/i);
 
-  const skillPool = [
-    'JavaScript', 'TypeScript', 'React', 'Node', 'Python', 'Java', 'SQL', 'AWS', 'Azure', 'GCP',
-    'Docker', 'Kubernetes', 'CI/CD', 'Git', 'API', 'Agile', 'Scrum', 'Excel', 'Communication', 'Leadership'
-  ];
-  const skills = skillPool.filter((word) => new RegExp(`\\b${word}\\b`, 'i').test(description)).join(', ');
+  const skills = SKILL_POOL.filter((word) => new RegExp(`\\b${word}\\b`, 'i').test(description)).join(', ');
 
   return {
     jobTitle: title,
@@ -85,8 +91,8 @@ function filteredApplications() {
   const q = searchInput.value.trim().toLowerCase();
   const status = statusFilter.value;
   return applications.filter((app) => {
-    const blob = `${app.jobTitle} ${app.company} ${app.location} ${app.skills} ${app.notes}`.toLowerCase();
-    const queryOk = !q || blob.includes(q);
+    const searchableText = `${app.jobTitle} ${app.company} ${app.location} ${app.skills} ${app.notes}`.toLowerCase();
+    const queryOk = !q || searchableText.includes(q);
     const statusOk = status === 'all' || app.status === status;
     return queryOk && statusOk;
   });
@@ -150,7 +156,11 @@ function saveDraft() {
 
 function loadDraft() {
   const draft = loadJson(DRAFT_KEY, null);
-  if (draft) setForm(draft);
+  if (draft) {
+    setForm(draft);
+    return true;
+  }
+  return false;
 }
 
 document.getElementById('analyzeBtn').addEventListener('click', () => {
@@ -215,17 +225,19 @@ document.getElementById('importFile').addEventListener('change', async (event) =
   try {
     const imported = JSON.parse(await file.text());
     if (!Array.isArray(imported)) throw new Error('Invalid format');
-    applications = imported.filter((item) => item && typeof item === 'object' && item.id);
+    const valid = imported.filter((item) => item && typeof item === 'object' && item.id);
+    const skipped = imported.length - valid.length;
+    applications = valid;
     saveApplications();
     renderList();
-    analysisHint.textContent = 'Applications imported.';
+    analysisHint.textContent = skipped > 0
+      ? `Imported ${valid.length} applications. Skipped ${skipped} invalid entries.`
+      : `Imported ${valid.length} applications.`;
   } catch {
     analysisHint.textContent = 'Could not import file. Use exported JSON format.';
   }
 });
 
-loadDraft();
-if (!document.getElementById('dateApplied').value) {
-  document.getElementById('dateApplied').value = new Date().toISOString().slice(0, 10);
-}
+const hasDraft = loadDraft();
+if (!hasDraft) resetForm();
 renderList();
