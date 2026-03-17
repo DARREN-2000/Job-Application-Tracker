@@ -12,4 +12,4 @@ A lightweight, no-setup job tracker focused on speed:
 
 ## Run
 
-Open `/home/runner/work/Job-Application-Tracker/Job-Application-Tracker/index.html` in your browser.
+Open `index.html` in your browser.

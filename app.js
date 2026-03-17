@@ -1,5 +1,7 @@
 const STORAGE_KEY = 'jat.applications.v1';
 const DRAFT_KEY = 'jat.draft.v1';
+const MAX_NOTES_LENGTH = 400;
+const MAX_SUMMARY_LENGTH = 120;
 
 const form = document.getElementById('applicationForm');
 const list = document.getElementById('applicationsList');
@@ -54,7 +56,10 @@ function autoExtract(description) {
   const applyUrl = description.match(/https?:\/\/[^\s)]+/i)?.[0] || '';
   const deadlinePhrase = pick(/(?:deadline|apply by)\s*[:\-]\s*([^\n]+)/i);
 
-  const skillPool = ['JavaScript', 'TypeScript', 'React', 'Node', 'Python', 'Java', 'SQL', 'AWS', 'Docker', 'Kubernetes', 'API', 'Excel', 'Communication', 'Leadership'];
+  const skillPool = [
+    'JavaScript', 'TypeScript', 'React', 'Node', 'Python', 'Java', 'SQL', 'AWS', 'Azure', 'GCP',
+    'Docker', 'Kubernetes', 'CI/CD', 'Git', 'API', 'Agile', 'Scrum', 'Excel', 'Communication', 'Leadership'
+  ];
   const skills = skillPool.filter((word) => new RegExp(`\\b${word}\\b`, 'i').test(description)).join(', ');
 
   return {
@@ -65,7 +70,7 @@ function autoExtract(description) {
     applyUrl,
     deadline: parseToDate(deadlinePhrase),
     skills,
-    notes: description.slice(0, 400),
+    notes: description.slice(0, MAX_NOTES_LENGTH),
   };
 }
 
@@ -112,7 +117,7 @@ function renderList() {
     const node = template.content.firstElementChild.cloneNode(true);
     node.querySelector('[data-role="title"]').textContent = `${app.jobTitle || 'Untitled role'} — ${app.company || 'Unknown company'}`;
     node.querySelector('[data-role="meta"]').textContent = [app.location, app.salary, app.dateApplied && `Applied: ${app.dateApplied}`].filter(Boolean).join(' • ');
-    node.querySelector('[data-role="summary"]').textContent = app.notes?.slice(0, 120) || '';
+    node.querySelector('[data-role="summary"]').textContent = app.notes?.slice(0, MAX_SUMMARY_LENGTH) || '';
     node.querySelector('[data-role="skills"]').textContent = app.skills ? `Skills: ${app.skills}` : '';
 
     const statusSelect = node.querySelector('[data-role="statusSelect"]');
