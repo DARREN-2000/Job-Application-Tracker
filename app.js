@@ -44,7 +44,12 @@ const el = {
 };
 
 function uid() {
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}-${Math.random()
+    .toString(16)
+    .slice(2)}`;
 }
 
 function sanitize(text) {
@@ -125,7 +130,10 @@ function renderStats(items) {
   const counts = { Total: items.length };
   for (const status of STATUSES) counts[status] = items.filter((i) => i.status === status).length;
 
-  const upcoming = items.filter((i) => i.followUpDate && Date.parse(i.followUpDate) >= Date.now()).length;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayTs = today.getTime();
+  const upcoming = items.filter((i) => i.followUpDate && Date.parse(i.followUpDate) >= todayTs).length;
   counts["Follow-ups"] = upcoming;
 
   Object.entries(counts).forEach(([name, value]) => {

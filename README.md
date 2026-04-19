@@ -25,7 +25,7 @@ Open `index.html` in your browser.
 ### Option 2: Python static server
 
 ```bash
-cd /home/runner/work/Job-Application-Tracker/Job-Application-Tracker
+cd Job-Application-Tracker
 python -m http.server 8000
 ```
 
