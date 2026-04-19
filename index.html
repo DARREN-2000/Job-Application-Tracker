@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Job Application Tracker</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>Job Application Tracker</h1>
+        <p>Track every application clearly, quickly, and in one place.</p>
+      </div>
+      <div class="topbar-actions">
+        <button id="themeToggle" type="button" aria-label="Toggle dark mode">🌙 Theme</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel stats" aria-label="Application statistics">
+        <h2>Dashboard</h2>
+        <div class="stat-grid" id="statGrid"></div>
+      </section>
+
+      <section class="panel" aria-label="Add or update application">
+        <h2 id="formTitle">Add Application</h2>
+        <form id="applicationForm" novalidate>
+          <input type="hidden" id="applicationId" />
+          <div class="grid">
+            <label>
+              Company *
+              <input id="company" name="company" required maxlength="80" />
+            </label>
+            <label>
+              Role *
+              <input id="role" name="role" required maxlength="80" />
+            </label>
+            <label>
+              Status
+              <select id="status" name="status">
+                <option>Wishlist</option>
+                <option>Applied</option>
+                <option>Interview</option>
+                <option>Offer</option>
+                <option>Rejected</option>
+              </select>
+            </label>
+            <label>
+              Applied Date
+              <input id="appliedDate" name="appliedDate" type="date" />
+            </label>
+            <label>
+              Job Link
+              <input id="jobLink" name="jobLink" type="url" placeholder="https://..." />
+            </label>
+            <label>
+              Location
+              <input id="location" name="location" maxlength="80" />
+            </label>
+            <label>
+              Salary
+              <input id="salary" name="salary" maxlength="80" placeholder="e.g. 100k-120k" />
+            </label>
+            <label>
+              Follow-up Date
+              <input id="followUpDate" name="followUpDate" type="date" />
+            </label>
+          </div>
+          <label>
+            Notes
+            <textarea id="notes" name="notes" rows="3" maxlength="500"></textarea>
+          </label>
+          <div class="form-actions">
+            <button type="submit" id="saveBtn">Save</button>
+            <button type="button" id="cancelEditBtn" class="ghost" hidden>Cancel Edit</button>
+            <button type="button" id="seedDataBtn" class="ghost">Load Sample Data</button>
+          </div>
+          <p class="hint">* Required fields</p>
+          <p id="formError" class="error" role="alert" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="panel" aria-label="Search and filters">
+        <h2>Search & Filter</h2>
+        <div class="grid compact">
+          <label>
+            Search
+            <input id="searchInput" placeholder="Company, role, notes..." />
+          </label>
+          <label>
+            Status
+            <select id="statusFilter">
+              <option value="all">All</option>
+              <option>Wishlist</option>
+              <option>Applied</option>
+              <option>Interview</option>
+              <option>Offer</option>
+              <option>Rejected</option>
+            </select>
+          </label>
+          <label>
+            Sort By
+            <select id="sortBy">
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+              <option value="company">Company (A-Z)</option>
+              <option value="status">Status</option>
+              <option value="followup">Follow-up Date</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="Manage and export data">
+        <h2>Data Tools</h2>
+        <div class="button-wrap">
+          <button id="exportJsonBtn" type="button" class="ghost">Export JSON</button>
+          <button id="exportCsvBtn" type="button" class="ghost">Export CSV</button>
+          <button id="importBtn" type="button" class="ghost">Import JSON</button>
+          <input id="importFile" type="file" accept="application/json" hidden />
+          <button id="clearBtn" type="button" class="danger">Clear All</button>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="Application board">
+        <h2>Pipeline Board</h2>
+        <div id="board" class="board"></div>
+      </section>
+
+      <section class="panel" aria-label="Applications list">
+        <h2>Applications</h2>
+        <div id="emptyState" class="empty" hidden>No applications yet. Add one above to get started.</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Applied</th>
+                <th>Follow-up</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <template id="statCardTemplate">
+      <article class="stat-card">
+        <h3></h3>
+        <p></p>
+      </article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
