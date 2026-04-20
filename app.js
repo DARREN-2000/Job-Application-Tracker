@@ -63,6 +63,22 @@ function safeDate(dateString) {
   return d.toISOString().slice(0, 10);
 }
 
+function normalizeApplication(item) {
+  return {
+    id: sanitize(item.id) || uid(),
+    company: sanitize(item.company),
+    role: sanitize(item.role),
+    status: STATUSES.includes(item.status) ? item.status : "Wishlist",
+    appliedDate: safeDate(item.appliedDate),
+    jobLink: sanitize(item.jobLink),
+    location: sanitize(item.location),
+    salary: sanitize(item.salary),
+    followUpDate: safeDate(item.followUpDate),
+    notes: sanitize(item.notes),
+    createdAt: Number(item.createdAt) || Date.now(),
+  };
+}
+
 function persist() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.applications));
 }
@@ -71,19 +87,9 @@ function load() {
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
     state.applications = Array.isArray(parsed)
-      ? parsed.map((item) => ({
-          id: sanitize(item.id) || uid(),
-          company: sanitize(item.company),
-          role: sanitize(item.role),
-          status: STATUSES.includes(item.status) ? item.status : "Wishlist",
-          appliedDate: safeDate(item.appliedDate),
-          jobLink: sanitize(item.jobLink),
-          location: sanitize(item.location),
-          salary: sanitize(item.salary),
-          followUpDate: safeDate(item.followUpDate),
-          notes: sanitize(item.notes),
-          createdAt: Number(item.createdAt) || Date.now(),
-        }))
+      ? parsed
+          .map((item) => normalizeApplication(item))
+          .filter((item) => item.company && item.role)
       : [];
   } catch {
     state.applications = [];
@@ -150,12 +156,23 @@ function renderBoard(items) {
     const col = document.createElement("section");
     col.className = "column";
     const subset = items.filter((i) => i.status === status);
-    col.innerHTML = `<h3>${status} (${subset.length})</h3>`;
+    const title = document.createElement("h3");
+    title.textContent = `${status} (${subset.length})`;
+    col.appendChild(title);
     subset.forEach((item) => {
       const card = document.createElement("article");
       card.className = "card";
-      const follow = item.followUpDate ? `<small>Follow-up: ${item.followUpDate}</small>` : "";
-      card.innerHTML = `<strong>${item.company}</strong><br>${item.role}<br>${follow}`;
+      const company = document.createElement("strong");
+      company.textContent = item.company;
+      const br1 = document.createElement("br");
+      const role = document.createTextNode(item.role);
+      card.append(company, br1, role);
+      if (item.followUpDate) {
+        const br2 = document.createElement("br");
+        const follow = document.createElement("small");
+        follow.textContent = `Follow-up: ${item.followUpDate}`;
+        card.append(br2, follow);
+      }
       col.appendChild(card);
     });
     el.board.appendChild(col);
@@ -186,15 +203,22 @@ function renderTable(items) {
 
   items.forEach((app) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${app.company}</td>
-      <td>${app.role}</td>
-      <td><span class="tag">${app.status}</span></td>
-      <td>${app.appliedDate || "-"}</td>
-      <td>${app.followUpDate || "-"}</td>
-      <td></td>
-    `;
-    tr.querySelector("td:last-child").appendChild(rowActions(app));
+    const company = document.createElement("td");
+    company.textContent = app.company;
+    const role = document.createElement("td");
+    role.textContent = app.role;
+    const status = document.createElement("td");
+    const tag = document.createElement("span");
+    tag.className = "tag";
+    tag.textContent = app.status;
+    status.appendChild(tag);
+    const appliedDate = document.createElement("td");
+    appliedDate.textContent = app.appliedDate || "-";
+    const followUpDate = document.createElement("td");
+    followUpDate.textContent = app.followUpDate || "-";
+    const actions = document.createElement("td");
+    actions.appendChild(rowActions(app));
+    tr.append(company, role, status, appliedDate, followUpDate, actions);
     el.tableBody.appendChild(tr);
   });
 }
@@ -251,6 +275,9 @@ function validateForm(payload) {
   if (payload.jobLink && !/^https?:\/\//i.test(payload.jobLink)) {
     return "Job link must start with http:// or https://";
   }
+  if (payload.appliedDate && payload.followUpDate && payload.followUpDate < payload.appliedDate) {
+    return "Follow-up date cannot be before applied date.";
+  }
   return "";
 }
 
@@ -306,7 +333,9 @@ function downloadBlob(blob, filename) {
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
+  document.body.appendChild(a);
   a.click();
+  a.remove();
   URL.revokeObjectURL(url);
 }
 
@@ -316,19 +345,9 @@ function importJson(file) {
     try {
       const parsed = JSON.parse(String(reader.result || "[]"));
       if (!Array.isArray(parsed)) throw new Error("invalid");
-      state.applications = parsed.map((item) => ({
-        id: sanitize(item.id) || uid(),
-        company: sanitize(item.company),
-        role: sanitize(item.role),
-        status: STATUSES.includes(item.status) ? item.status : "Wishlist",
-        appliedDate: safeDate(item.appliedDate),
-        jobLink: sanitize(item.jobLink),
-        location: sanitize(item.location),
-        salary: sanitize(item.salary),
-        followUpDate: safeDate(item.followUpDate),
-        notes: sanitize(item.notes),
-        createdAt: Number(item.createdAt) || Date.now(),
-      }));
+      state.applications = parsed
+        .map((item) => normalizeApplication(item))
+        .filter((item) => item.company && item.role);
       persist();
       clearForm();
       render();
