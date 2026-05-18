@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Job Application Tracker</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Job Application Tracker</h1>
+      <p>Paste a job description, auto-fill details, and save in one flow.</p>
+    </header>
+
+    <main>
+      <section class="panel">
+        <h2>1) Paste Job Description</h2>
+        <textarea id="jobDescription" placeholder="Paste the full job post here..."></textarea>
+        <div class="actions">
+          <button id="analyzeBtn" type="button">Analyze & Prefill</button>
+          <button id="clearDraftBtn" class="secondary" type="button">Clear Draft</button>
+        </div>
+        <p id="analysisHint" class="hint"></p>
+      </section>
+
+      <section class="panel">
+        <h2>2) Confirm & Save Application</h2>
+        <form id="applicationForm">
+          <div class="grid">
+            <label>Job Title<input id="jobTitle" name="jobTitle" required /></label>
+            <label>Company<input id="company" name="company" required /></label>
+            <label>Location<input id="location" name="location" /></label>
+            <label>Salary<input id="salary" name="salary" /></label>
+            <label>Apply URL<input id="applyUrl" name="applyUrl" type="url" placeholder="https://..." /></label>
+            <label>Deadline<input id="deadline" name="deadline" type="date" /></label>
+            <label>Status
+              <select id="status" name="status">
+                <option>Saved</option>
+                <option>Applied</option>
+                <option>Interview</option>
+                <option>Offer</option>
+                <option>Rejected</option>
+              </select>
+            </label>
+            <label>Date Applied<input id="dateApplied" name="dateApplied" type="date" /></label>
+          </div>
+          <label>Skills / Keywords<input id="skills" name="skills" placeholder="React, SQL, API..." /></label>
+          <label>Notes<textarea id="notes" name="notes" rows="3" placeholder="Add custom notes"></textarea></label>
+          <div class="actions">
+            <button type="submit">Save Application</button>
+            <button id="resetFormBtn" class="secondary" type="button">Reset Form</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2>Dashboard</h2>
+        <div id="stats" class="stats"></div>
+        <div class="grid filters">
+          <label>Search<input id="searchInput" placeholder="title, company, skills..." /></label>
+          <label>Filter Status
+            <select id="statusFilter">
+              <option value="all">All</option>
+              <option value="Saved">Saved</option>
+              <option value="Applied">Applied</option>
+              <option value="Interview">Interview</option>
+              <option value="Offer">Offer</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+          </label>
+          <div class="actions compact">
+            <button id="exportBtn" class="secondary" type="button">Export JSON</button>
+            <button id="importBtn" class="secondary" type="button">Import JSON</button>
+            <input id="importFile" type="file" accept="application/json" hidden />
+          </div>
+        </div>
+        <ul id="applicationsList" class="applications"></ul>
+      </section>
+    </main>
+
+    <template id="applicationCardTemplate">
+      <li class="application-card">
+        <div>
+          <h3 data-role="title"></h3>
+          <p data-role="meta"></p>
+          <p data-role="summary"></p>
+          <p data-role="skills" class="chips"></p>
+        </div>
+        <div class="card-actions">
+          <select data-role="statusSelect">
+            <option>Saved</option>
+            <option>Applied</option>
+            <option>Interview</option>
+            <option>Offer</option>
+            <option>Rejected</option>
+          </select>
+          <button data-role="edit" class="secondary" type="button">Edit</button>
+          <button data-role="delete" class="danger" type="button">Delete</button>
+        </div>
+      </li>
+    </template>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
