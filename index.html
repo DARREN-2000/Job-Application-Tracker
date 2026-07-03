@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Job Application Tracker</title>
     <link rel="stylesheet" href="./styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body>
     <header>
@@ -55,7 +56,12 @@
 
       <section class="panel">
         <h2>Dashboard</h2>
-        <div id="stats" class="stats"></div>
+        <div class="dashboard-top">
+          <div id="stats" class="stats"></div>
+          <div class="chart-container">
+            <canvas id="statusChart"></canvas>
+          </div>
+        </div>
         <div class="grid filters">
           <label>Search<input id="searchInput" placeholder="title, company, skills..." /></label>
           <label>Filter Status
@@ -69,6 +75,7 @@
             </select>
           </label>
           <div class="actions compact">
+            <button id="loadSampleBtn" class="secondary" type="button">Load Sample Data</button>
             <button id="exportBtn" class="secondary" type="button">Export JSON</button>
             <button id="importBtn" class="secondary" type="button">Import JSON</button>
             <input id="importFile" type="file" accept="application/json" hidden />

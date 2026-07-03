@@ -21,6 +21,7 @@ const fieldIds = ['jobTitle', 'company', 'location', 'salary', 'applyUrl', 'dead
 
 let applications = loadJson(STORAGE_KEY, []);
 let editingId = null;
+let statusChart = null;
 
 function loadJson(key, fallback) {
   try {
@@ -108,6 +109,46 @@ function renderStats() {
   stats.innerHTML = ['total', 'Saved', 'Applied', 'Interview', 'Offer', 'Rejected']
     .map((k) => `<div class="stat"><strong>${k === 'total' ? 'Total' : k}</strong><br>${counts[k] || 0}</div>`)
     .join('');
+
+  updateChart(counts);
+}
+
+function updateChart(counts) {
+  const ctx = document.getElementById('statusChart').getContext('2d');
+
+  const data = {
+    labels: ['Saved', 'Applied', 'Interview', 'Offer', 'Rejected'],
+    datasets: [{
+      data: [counts.Saved, counts.Applied, counts.Interview, counts.Offer, counts.Rejected],
+      backgroundColor: [
+        '#94a3b8', // Saved - slate
+        '#3b82f6', // Applied - blue
+        '#a855f7', // Interview - purple
+        '#22c55e', // Offer - green
+        '#ef4444'  // Rejected - red
+      ],
+      borderWidth: 1
+    }]
+  };
+
+  if (statusChart) {
+    statusChart.data = data;
+    statusChart.update();
+  } else {
+    statusChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: data,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+          }
+        }
+      }
+    });
+  }
 }
 
 function renderList() {
@@ -121,6 +162,7 @@ function renderList() {
 
   items.forEach((app) => {
     const node = template.content.firstElementChild.cloneNode(true);
+    node.classList.add(`status-${(app.status || 'saved').toLowerCase()}`);
     node.querySelector('[data-role="title"]').textContent = `${app.jobTitle || 'Untitled role'} — ${app.company || 'Unknown company'}`;
     node.querySelector('[data-role="meta"]').textContent = [app.location, app.salary, app.dateApplied && `Applied: ${app.dateApplied}`].filter(Boolean).join(' • ');
     node.querySelector('[data-role="summary"]').textContent = app.notes?.slice(0, MAX_SUMMARY_LENGTH) || '';
@@ -236,6 +278,86 @@ document.getElementById('importFile').addEventListener('change', async (event) =
   } catch {
     analysisHint.textContent = 'Could not import file. Use exported JSON format.';
   }
+});
+
+document.getElementById('loadSampleBtn').addEventListener('click', () => {
+  const sampleData = [
+    {
+      id: crypto.randomUUID(),
+      jobTitle: 'Senior Frontend Engineer',
+      company: 'TechCorp Inc.',
+      location: 'Remote (US)',
+      salary: '$140,000 - $160,000',
+      applyUrl: 'https://techcorp.com/careers/frontend',
+      deadline: '2023-12-31',
+      status: 'Interview',
+      dateApplied: '2023-10-15',
+      skills: 'React, TypeScript, CSS, Testing',
+      notes: 'Had a great first round with the hiring manager. Next step is a technical pair programming session.',
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: crypto.randomUUID(),
+      jobTitle: 'Full Stack Developer',
+      company: 'StartupX',
+      location: 'New York, NY',
+      salary: '$120,000',
+      applyUrl: 'https://startupx.io/jobs/123',
+      deadline: '2023-11-15',
+      status: 'Applied',
+      dateApplied: '2023-10-20',
+      skills: 'Node.js, React, PostgreSQL',
+      notes: 'Applied through their custom portal. Need to follow up in a week if I do not hear back.',
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: crypto.randomUUID(),
+      jobTitle: 'Software Engineer II',
+      company: 'Global Systems',
+      location: 'Austin, TX',
+      salary: '$130,000',
+      applyUrl: '',
+      deadline: '',
+      status: 'Rejected',
+      dateApplied: '2023-09-01',
+      skills: 'Java, Spring Boot, AWS',
+      notes: 'Received a standard rejection email. Role might have been filled internally.',
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: crypto.randomUUID(),
+      jobTitle: 'Lead Web Developer',
+      company: 'Creative Agency',
+      location: 'London, UK (Hybrid)',
+      salary: '£80,000',
+      applyUrl: 'https://creative.agency/careers',
+      deadline: '2023-11-30',
+      status: 'Offer',
+      dateApplied: '2023-09-15',
+      skills: 'JavaScript, Vue.js, Tailwind',
+      notes: 'They offered! Need to review the benefits package before accepting.',
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: crypto.randomUUID(),
+      jobTitle: 'Backend Engineer',
+      company: 'DataStream',
+      location: 'San Francisco, CA',
+      salary: '$150,000+',
+      applyUrl: 'https://datastream.io/apply',
+      deadline: '2023-12-01',
+      status: 'Saved',
+      dateApplied: '',
+      skills: 'Python, Django, Redis, Docker',
+      notes: 'Interesting company, need to polish my resume to highlight my Docker experience before applying.',
+      updatedAt: new Date().toISOString()
+    }
+  ];
+
+  applications = [...sampleData, ...applications];
+  saveApplications();
+  renderList();
+  analysisHint.textContent = 'Sample data loaded successfully!';
 });
 
 const hasDraft = loadDraft();
