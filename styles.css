@@ -116,6 +116,22 @@ button.danger {
 }
 
 .hint { color: var(--muted); min-height: 1.4rem; }
+.advanced-settings {
+  margin-top: 0.8rem;
+  padding: 0.8rem;
+  background: var(--stat-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.advanced-settings summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--accent);
+}
+.advanced-settings p {
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+}
 .stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
