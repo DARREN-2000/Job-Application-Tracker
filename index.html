@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Job Application Tracker</title>
+    <link rel="manifest" href="./manifest.json" />
+    <meta name="theme-color" content="#2364e8" />
     <link rel="stylesheet" href="./styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
@@ -22,6 +24,13 @@
       <section class="panel">
         <h2>1) Paste Job Description</h2>
         <textarea id="jobDescription" placeholder="Paste the full job post here..."></textarea>
+
+        <details class="advanced-settings">
+          <summary>Advanced: AI Analysis (Optional)</summary>
+          <p class="hint">Enter an OpenAI API Key to improve extraction accuracy using AI. Your key is stored locally.</p>
+          <label>OpenAI API Key<input id="apiKeyInput" type="password" placeholder="sk-..." /></label>
+        </details>
+
         <div class="actions">
           <button id="analyzeBtn" type="button">Analyze & Prefill</button>
           <button id="clearDraftBtn" class="secondary" type="button">Clear Draft</button>
@@ -122,5 +131,14 @@
     </template>
 
     <script src="./app.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker registered', reg))
+            .catch(err => console.error('Service Worker registration failed', err));
+        });
+      }
+    </script>
   </body>
 </html>

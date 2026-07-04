@@ -1,6 +1,9 @@
-const STORAGE_KEY = 'jat.applications.v1';
+const DB_NAME = 'JobTrackerDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'applications';
 const DRAFT_KEY = 'jat.draft.v1';
 const THEME_KEY = 'jat.theme.v1';
+const API_KEY_KEY = 'jat.openai_api_key.v1';
 const MAX_NOTES_LENGTH = 400;
 const MAX_SUMMARY_LENGTH = 120;
 const MIN_TITLE_LENGTH = 3;
@@ -19,16 +22,44 @@ const statusFilter = document.getElementById('statusFilter');
 const sortSelect = document.getElementById('sortSelect');
 const analysisHint = document.getElementById('analysisHint');
 const themeToggle = document.getElementById('themeToggle');
+const apiKeyInput = document.getElementById('apiKeyInput');
 
 const fieldIds = ['jobTitle', 'company', 'location', 'salary', 'applyUrl', 'deadline', 'status', 'dateApplied', 'skills', 'notes'];
 
-let applications = loadJson(STORAGE_KEY, []);
+let applications = [];
 let editingId = null;
 let statusChart = null;
+let db = null;
 let isDarkMode = loadJson(THEME_KEY, false);
 
 if (isDarkMode) {
   document.body.classList.add('dark-theme');
+}
+
+// Load saved API Key
+const savedApiKey = loadJson(API_KEY_KEY, '');
+if (savedApiKey) {
+  apiKeyInput.value = savedApiKey;
+}
+apiKeyInput.addEventListener('input', () => {
+  localStorage.setItem(API_KEY_KEY, JSON.stringify(apiKeyInput.value.trim()));
+});
+
+function initDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      }
+    };
+    request.onsuccess = (event) => {
+      db = event.target.result;
+      resolve(db);
+    };
+    request.onerror = (event) => reject(event.target.error);
+  });
 }
 
 themeToggle.addEventListener('click', () => {
@@ -51,8 +82,49 @@ function loadJson(key, fallback) {
   }
 }
 
-function saveApplications() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(applications));
+function loadApplicationsFromDB() {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME], 'readonly');
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function saveApplicationToDB(app) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME], 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.put(app);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function deleteApplicationFromDB(id) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME], 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.delete(id);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function clearApplicationsFromDB() {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME], 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.clear();
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function refreshApplications() {
+  applications = await loadApplicationsFromDB();
+  renderList();
 }
 
 function formDataObject() {
@@ -98,6 +170,61 @@ function autoExtract(description) {
     skills,
     notes: description.slice(0, MAX_NOTES_LENGTH),
   };
+}
+
+async function aiExtract(description, apiKey) {
+  const prompt = `
+Extract the following information from the job description below.
+Return ONLY a valid JSON object with the following keys. If a value is not found, leave it as an empty string.
+- jobTitle: (string)
+- company: (string)
+- location: (string)
+- salary: (string)
+- applyUrl: (string)
+- deadline: (string, YYYY-MM-DD format if possible)
+- skills: (string, comma separated list of top 5-10 technical/soft skills)
+
+Job Description:
+${description}
+`;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.2
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+    const parsed = JSON.parse(content);
+
+    // Validate output structure
+    return {
+      jobTitle: parsed.jobTitle || '',
+      company: parsed.company || '',
+      location: parsed.location || '',
+      salary: parsed.salary || '',
+      applyUrl: parsed.applyUrl || '',
+      deadline: parseToDate(parsed.deadline),
+      skills: parsed.skills || '',
+      notes: description.slice(0, MAX_NOTES_LENGTH)
+    };
+  } catch (err) {
+    console.error('AI Extraction failed:', err);
+    throw err; // Re-throw to fall back to regex
+  }
 }
 
 function parseToDate(value) {
@@ -209,10 +336,10 @@ function renderList() {
 
     const statusSelect = node.querySelector('[data-role="statusSelect"]');
     statusSelect.value = app.status || 'Saved';
-    statusSelect.addEventListener('change', () => {
+    statusSelect.addEventListener('change', async () => {
       app.status = statusSelect.value;
-      saveApplications();
-      renderList();
+      await saveApplicationToDB(app);
+      await refreshApplications();
     });
 
     node.querySelector('[data-role="edit"]').addEventListener('click', () => {
@@ -222,10 +349,9 @@ function renderList() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    node.querySelector('[data-role="delete"]').addEventListener('click', () => {
-      applications = applications.filter((item) => item.id !== app.id);
-      saveApplications();
-      renderList();
+    node.querySelector('[data-role="delete"]').addEventListener('click', async () => {
+      await deleteApplicationFromDB(app.id);
+      await refreshApplications();
     });
 
     list.appendChild(node);
@@ -250,14 +376,31 @@ function loadDraft() {
   return false;
 }
 
-document.getElementById('analyzeBtn').addEventListener('click', () => {
+document.getElementById('analyzeBtn').addEventListener('click', async () => {
   const description = document.getElementById('jobDescription').value.trim();
   if (!description) {
     analysisHint.textContent = 'Paste a job description first.';
     return;
   }
 
-  const prefilled = autoExtract(description);
+  analysisHint.textContent = 'Analyzing...';
+
+  const apiKey = apiKeyInput.value.trim();
+  let prefilled = null;
+
+  if (apiKey) {
+    try {
+      prefilled = await aiExtract(description, apiKey);
+      analysisHint.textContent = 'Auto-filled using AI. Review and click Save Application.';
+    } catch (err) {
+      prefilled = autoExtract(description);
+      analysisHint.textContent = 'AI analysis failed. Auto-filled using local extraction.';
+    }
+  } else {
+    prefilled = autoExtract(description);
+    analysisHint.textContent = 'Auto-filled using local extraction. Review and click Save Application.';
+  }
+
   const currentData = formDataObject();
 
   // Only override if the extracted value is non-empty
@@ -269,7 +412,6 @@ document.getElementById('analyzeBtn').addEventListener('click', () => {
   }
 
   setForm(mergedData);
-  analysisHint.textContent = 'Auto-filled fields. Review and click Save Application.';
   saveDraft();
 });
 
@@ -282,22 +424,17 @@ document.getElementById('clearDraftBtn').addEventListener('click', () => {
 
 form.addEventListener('input', saveDraft);
 
-form.addEventListener('submit', (event) => {
+form.addEventListener('submit', async (event) => {
   event.preventDefault();
   const data = formDataObject();
   const payload = { ...data, id: editingId || crypto.randomUUID(), updatedAt: new Date().toISOString() };
 
-  if (editingId) {
-    applications = applications.map((item) => (item.id === editingId ? payload : item));
-  } else {
-    applications.unshift(payload);
-  }
+  await saveApplicationToDB(payload);
 
-  saveApplications();
   localStorage.removeItem(DRAFT_KEY);
   analysisHint.textContent = editingId ? 'Application updated.' : 'Application saved.';
   resetForm();
-  renderList();
+  await refreshApplications();
 });
 
 document.getElementById('resetFormBtn').addEventListener('click', () => {
@@ -348,9 +485,14 @@ document.getElementById('importFile').addEventListener('change', async (event) =
     if (!Array.isArray(imported)) throw new Error('Invalid format');
     const valid = imported.filter((item) => item && typeof item === 'object' && item.id);
     const skipped = imported.length - valid.length;
-    applications = valid;
-    saveApplications();
-    renderList();
+
+    // Clear and re-import
+    await clearApplicationsFromDB();
+    for (const app of valid) {
+      await saveApplicationToDB(app);
+    }
+    await refreshApplications();
+
     analysisHint.textContent = skipped > 0
       ? `Imported ${valid.length} applications. Skipped ${skipped} invalid entries.`
       : `Imported ${valid.length} applications.`;
@@ -359,7 +501,7 @@ document.getElementById('importFile').addEventListener('change', async (event) =
   }
 });
 
-document.getElementById('loadSampleBtn').addEventListener('click', () => {
+document.getElementById('loadSampleBtn').addEventListener('click', async () => {
   const sampleData = [
     {
       id: crypto.randomUUID(),
@@ -433,12 +575,30 @@ document.getElementById('loadSampleBtn').addEventListener('click', () => {
     }
   ];
 
-  applications = [...sampleData, ...applications];
-  saveApplications();
-  renderList();
+  for (const app of sampleData) {
+    await saveApplicationToDB(app);
+  }
+  await refreshApplications();
   analysisHint.textContent = 'Sample data loaded successfully!';
 });
 
 const hasDraft = loadDraft();
 if (!hasDraft) resetForm();
-renderList();
+
+// Initialize DB and load data
+initDB().then(async () => {
+  // If local storage has old data, migrate it
+  const oldData = loadJson('jat.applications.v1', null);
+  if (oldData && oldData.length > 0) {
+    for (const app of oldData) {
+      await saveApplicationToDB(app);
+    }
+    localStorage.removeItem('jat.applications.v1');
+    console.log('Migrated old localStorage data to IndexedDB');
+  }
+
+  await refreshApplications();
+}).catch(err => {
+  console.error("Failed to initialize IndexedDB:", err);
+  analysisHint.textContent = 'Failed to load local database.';
+});
