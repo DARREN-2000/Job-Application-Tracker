@@ -6,6 +6,29 @@
   --muted: #5f6f8a;
   --accent: #2364e8;
   --danger: #c93232;
+  --card-saved: #94a3b8;
+  --card-applied: #3b82f6;
+  --card-interview: #a855f7;
+  --card-offer: #22c55e;
+  --card-rejected: #ef4444;
+  --stat-bg: #f9fbff;
+  --btn-secondary-bg: #ecf2ff;
+  --btn-secondary-text: #2c4f92;
+  --input-bg: #fff;
+}
+
+body.dark-theme {
+  --bg: #0f172a;
+  --panel: #1e293b;
+  --border: #334155;
+  --text: #f8fafc;
+  --muted: #94a3b8;
+  --accent: #3b82f6;
+  --danger: #ef4444;
+  --stat-bg: #0f172a;
+  --btn-secondary-bg: #334155;
+  --btn-secondary-text: #e2e8f0;
+  --input-bg: #0f172a;
 }
 
 * { box-sizing: border-box; }
@@ -20,6 +43,15 @@ header {
   padding: 1.25rem;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
+}
+.header-content {
+  max-width: 1040px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 header h1 { margin: 0; }
 header p { margin: 0.3rem 0 0; color: var(--muted); }
@@ -49,7 +81,8 @@ textarea, input, select {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.55rem 0.65rem;
-  background: #fff;
+  background: var(--input-bg);
+  color: var(--text);
 }
 textarea { min-height: 130px; resize: vertical; }
 .grid {
@@ -74,8 +107,8 @@ button {
   cursor: pointer;
 }
 button.secondary {
-  background: #ecf2ff;
-  color: #2c4f92;
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
 }
 button.danger {
   background: #fae8e8;
@@ -93,7 +126,7 @@ button.danger {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.55rem;
-  background: #f9fbff;
+  background: var(--stat-bg);
 }
 .applications {
   list-style: none;
@@ -127,11 +160,11 @@ button.danger {
   gap: 1rem;
   justify-content: space-between;
 }
-.application-card.status-saved { border-left-color: #94a3b8; }
-.application-card.status-applied { border-left-color: #3b82f6; }
-.application-card.status-interview { border-left-color: #a855f7; }
-.application-card.status-offer { border-left-color: #22c55e; }
-.application-card.status-rejected { border-left-color: #ef4444; }
+.application-card.status-saved { border-left-color: var(--card-saved); }
+.application-card.status-applied { border-left-color: var(--card-applied); }
+.application-card.status-interview { border-left-color: var(--card-interview); }
+.application-card.status-offer { border-left-color: var(--card-offer); }
+.application-card.status-rejected { border-left-color: var(--card-rejected); }
 .application-card h3 { margin: 0; }
 .application-card p { margin: 0.3rem 0; color: var(--muted); }
 .card-actions {
@@ -143,5 +176,5 @@ button.danger {
 .chips {
   display: inline-block;
   font-size: 0.9rem;
-  color: #2a4d8d !important;
+  color: var(--accent) !important;
 }
