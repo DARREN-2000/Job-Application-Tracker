@@ -179,6 +179,7 @@ function renderList() {
     node.querySelector('[data-role="edit"]').addEventListener('click', () => {
       editingId = app.id;
       setForm(app);
+      saveDraft();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
@@ -193,12 +194,17 @@ function renderList() {
 }
 
 function saveDraft() {
-  localStorage.setItem(DRAFT_KEY, JSON.stringify(formDataObject()));
+  const data = formDataObject();
+  data.editingId = editingId;
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
 }
 
 function loadDraft() {
   const draft = loadJson(DRAFT_KEY, null);
   if (draft) {
+    if (draft.editingId) {
+      editingId = draft.editingId;
+    }
     setForm(draft);
     return true;
   }
@@ -213,7 +219,17 @@ document.getElementById('analyzeBtn').addEventListener('click', () => {
   }
 
   const prefilled = autoExtract(description);
-  setForm({ ...formDataObject(), ...prefilled });
+  const currentData = formDataObject();
+
+  // Only override if the extracted value is non-empty
+  const mergedData = { ...currentData };
+  for (const key in prefilled) {
+    if (prefilled[key]) {
+      mergedData[key] = prefilled[key];
+    }
+  }
+
+  setForm(mergedData);
   analysisHint.textContent = 'Auto-filled fields. Review and click Save Application.';
   saveDraft();
 });
@@ -245,7 +261,10 @@ form.addEventListener('submit', (event) => {
   renderList();
 });
 
-document.getElementById('resetFormBtn').addEventListener('click', resetForm);
+document.getElementById('resetFormBtn').addEventListener('click', () => {
+  localStorage.removeItem(DRAFT_KEY);
+  resetForm();
+});
 searchInput.addEventListener('input', renderList);
 statusFilter.addEventListener('change', renderList);
 
