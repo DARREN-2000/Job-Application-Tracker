@@ -102,14 +102,36 @@ button.danger {
   display: grid;
   gap: 0.7rem;
 }
+.dashboard-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+.dashboard-top .stats {
+  flex: 1;
+  min-width: 300px;
+}
+.dashboard-top .chart-container {
+  width: 200px;
+  height: 200px;
+  margin: 0 auto;
+}
+
 .application-card {
   border: 1px solid var(--border);
+  border-left: 5px solid var(--border);
   border-radius: 10px;
   padding: 0.8rem;
   display: flex;
   gap: 1rem;
   justify-content: space-between;
 }
+.application-card.status-saved { border-left-color: #94a3b8; }
+.application-card.status-applied { border-left-color: #3b82f6; }
+.application-card.status-interview { border-left-color: #a855f7; }
+.application-card.status-offer { border-left-color: #22c55e; }
+.application-card.status-rejected { border-left-color: #ef4444; }
 .application-card h3 { margin: 0; }
 .application-card p { margin: 0.3rem 0; color: var(--muted); }
 .card-actions {
