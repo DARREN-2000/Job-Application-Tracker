@@ -1,5 +1,6 @@
 const STORAGE_KEY = 'jat.applications.v1';
 const DRAFT_KEY = 'jat.draft.v1';
+const THEME_KEY = 'jat.theme.v1';
 const MAX_NOTES_LENGTH = 400;
 const MAX_SUMMARY_LENGTH = 120;
 const MIN_TITLE_LENGTH = 3;
@@ -15,13 +16,31 @@ const template = document.getElementById('applicationCardTemplate');
 const stats = document.getElementById('stats');
 const searchInput = document.getElementById('searchInput');
 const statusFilter = document.getElementById('statusFilter');
+const sortSelect = document.getElementById('sortSelect');
 const analysisHint = document.getElementById('analysisHint');
+const themeToggle = document.getElementById('themeToggle');
 
 const fieldIds = ['jobTitle', 'company', 'location', 'salary', 'applyUrl', 'deadline', 'status', 'dateApplied', 'skills', 'notes'];
 
 let applications = loadJson(STORAGE_KEY, []);
 let editingId = null;
 let statusChart = null;
+let isDarkMode = loadJson(THEME_KEY, false);
+
+if (isDarkMode) {
+  document.body.classList.add('dark-theme');
+}
+
+themeToggle.addEventListener('click', () => {
+  isDarkMode = !isDarkMode;
+  document.body.classList.toggle('dark-theme', isDarkMode);
+  localStorage.setItem(THEME_KEY, JSON.stringify(isDarkMode));
+
+  if (statusChart) {
+    statusChart.options.plugins.legend.labels.color = isDarkMode ? '#f8fafc' : '#162136';
+    statusChart.update();
+  }
+});
 
 function loadJson(key, fallback) {
   try {
@@ -91,12 +110,29 @@ function parseToDate(value) {
 function filteredApplications() {
   const q = searchInput.value.trim().toLowerCase();
   const status = statusFilter.value;
-  return applications.filter((app) => {
+  const sort = sortSelect.value;
+
+  let result = applications.filter((app) => {
     const searchableText = `${app.jobTitle} ${app.company} ${app.location} ${app.skills} ${app.notes}`.toLowerCase();
     const queryOk = !q || searchableText.includes(q);
     const statusOk = status === 'all' || app.status === status;
     return queryOk && statusOk;
   });
+
+  result.sort((a, b) => {
+    if (sort === 'dateDesc') {
+      return (b.dateApplied || '0000-00-00').localeCompare(a.dateApplied || '0000-00-00');
+    } else if (sort === 'dateAsc') {
+      return (a.dateApplied || '9999-99-99').localeCompare(b.dateApplied || '9999-99-99');
+    } else if (sort === 'title') {
+      return (a.jobTitle || '').localeCompare(b.jobTitle || '');
+    } else if (sort === 'company') {
+      return (a.company || '').localeCompare(b.company || '');
+    }
+    return 0;
+  });
+
+  return result;
 }
 
 function renderStats() {
@@ -144,6 +180,9 @@ function updateChart(counts) {
         plugins: {
           legend: {
             position: 'right',
+            labels: {
+              color: isDarkMode ? '#f8fafc' : '#162136'
+            }
           }
         }
       }
@@ -267,6 +306,7 @@ document.getElementById('resetFormBtn').addEventListener('click', () => {
 });
 searchInput.addEventListener('input', renderList);
 statusFilter.addEventListener('change', renderList);
+sortSelect.addEventListener('change', renderList);
 
 document.getElementById('exportBtn').addEventListener('click', () => {
   const blob = new Blob([JSON.stringify(applications, null, 2)], { type: 'application/json' });
@@ -274,6 +314,26 @@ document.getElementById('exportBtn').addEventListener('click', () => {
   const a = document.createElement('a');
   a.href = url;
   a.download = 'job-applications.json';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('exportCsvBtn').addEventListener('click', () => {
+  if (!applications.length) return;
+  const headers = ['jobTitle', 'company', 'location', 'salary', 'applyUrl', 'deadline', 'status', 'dateApplied', 'skills', 'notes', 'updatedAt'];
+  const rows = applications.map(app =>
+    headers.map(h => {
+      const val = app[h] || '';
+      return `"${String(val).replace(/"/g, '""')}"`;
+    }).join(',')
+  );
+
+  const csvContent = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'job-applications.csv';
   a.click();
   URL.revokeObjectURL(url);
 });

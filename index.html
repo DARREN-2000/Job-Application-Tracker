@@ -9,8 +9,13 @@
   </head>
   <body>
     <header>
-      <h1>Job Application Tracker</h1>
-      <p>Paste a job description, auto-fill details, and save in one flow.</p>
+      <div class="header-content">
+        <div>
+          <h1>Job Application Tracker</h1>
+          <p>Paste a job description, auto-fill details, and save in one flow.</p>
+        </div>
+        <button id="themeToggle" class="secondary" type="button">Toggle Dark Mode</button>
+      </div>
     </header>
 
     <main>
@@ -74,9 +79,18 @@
               <option value="Rejected">Rejected</option>
             </select>
           </label>
+          <label>Sort By
+            <select id="sortSelect">
+              <option value="dateDesc">Date Applied (Newest)</option>
+              <option value="dateAsc">Date Applied (Oldest)</option>
+              <option value="title">Job Title</option>
+              <option value="company">Company</option>
+            </select>
+          </label>
           <div class="actions compact">
             <button id="loadSampleBtn" class="secondary" type="button">Load Sample Data</button>
             <button id="exportBtn" class="secondary" type="button">Export JSON</button>
+            <button id="exportCsvBtn" class="secondary" type="button">Export CSV</button>
             <button id="importBtn" class="secondary" type="button">Import JSON</button>
             <input id="importFile" type="file" accept="application/json" hidden />
           </div>
